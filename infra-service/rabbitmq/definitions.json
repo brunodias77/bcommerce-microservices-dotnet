@@ -1,0 +1,138 @@
+{
+  "rabbit_version": "3.12.0",
+  "rabbitmq_version": "3.12.0",
+  "product_name": "RabbitMQ",
+  "product_version": "3.12.0",
+  "users": [
+    {
+      "name": "admin",
+      "password_hash": "gTkbW8yTaXw/oEbXc8YYbVvCKBGJUHzOtCkuJV6V8mHzJkTZ",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": "administrator"
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "/"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "client.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "catalog.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "cart.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "sales.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "queues": [
+    {
+      "name": "cliente.cadastro",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "catalogo.atualizacao.estoque",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "carrinho.abandonado",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000
+      }
+    },
+    {
+      "name": "vendas.pedido.criado",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-message-ttl": 86400000
+      }
+    }
+  ],
+  "bindings": [
+    {
+      "source": "client.events",
+      "vhost": "/",
+      "destination": "cliente.cadastro",
+      "destination_type": "queue",
+      "routing_key": "client.registered",
+      "arguments": {}
+    },
+    {
+      "source": "catalog.events",
+      "vhost": "/",
+      "destination": "catalogo.atualizacao.estoque",
+      "destination_type": "queue",
+      "routing_key": "catalog.stock.updated",
+      "arguments": {}
+    },
+    {
+      "source": "cart.events",
+      "vhost": "/",
+      "destination": "carrinho.abandonado",
+      "destination_type": "queue",
+      "routing_key": "cart.abandoned",
+      "arguments": {}
+    },
+    {
+      "source": "sales.events",
+      "vhost": "/",
+      "destination": "vendas.pedido.criado",
+      "destination_type": "queue",
+      "routing_key": "sales.order.created",
+      "arguments": {}
+    }
+  ]
+}

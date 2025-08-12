@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Banco de dados principal
+  postgres:
+    image: postgres:15
+    container_name: b-commerce-postgres
+    environment:
+      POSTGRES_DB: bcommerce
+      POSTGRES_USER: bcommerce_user
+      POSTGRES_PASSWORD: bcommerce_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra-service/data/database.sql:/docker-entrypoint-initdb.d/01-database.sql
+      - ./infra-service/data/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    networks:
+      - b-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcommerce_user -d bcommerce"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # PostgreSQL para Keycloak
+  keycloak-db:
+    image: postgres:15
+    container_name: b-commerce-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak_user
+      POSTGRES_PASSWORD: keycloak_pass
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - b-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Keycloak - Autenticação e Autorização
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: b-commerce-keycloak
+    # Alterar o comando para incluir importação
+    command: [
+      "start-dev",
+      "--import-realm"
+    ]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: keycloak_pass
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      # Remover esta linha obsoleta
+      # KEYCLOAK_IMPORT: /opt/keycloak/data/import/b-commerce-realm.json
+    ports:
+      - "8080:8080"
+    volumes:
+      # Alterar o caminho para o diretório correto do Keycloak 23.0
+      - ./infra-service/keycloak/b-commerce-realm.json:/opt/keycloak/data/import/b-commerce-realm.json:ro
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - b-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # RabbitMQ - Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: b-commerce-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbit log_levels [{connection,error},{default,info}] disk_free_limit 2147483648
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infra-service/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    networks:
+      - b-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+  
+networks:
+  b-commerce-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  keycloak_db_data:
+    driver: local
+  rabbitmq_data:
+    driver: local

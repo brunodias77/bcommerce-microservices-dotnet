@@ -1,0 +1,175 @@
+🛒 **B-Commerce (.NET Edition): Design Estratégico e Roadmap de Desenvolvimento com Microsserviços em C#**
+
+---
+
+### 🎯 OBJETIVO PRINCIPAL
+
+Desenvolver uma plataforma de e-commerce moderna, escalável e resiliente, utilizando C# e .NET 8 com arquitetura de microsserviços desacoplada, autenticação centralizada via Keycloak (OIDC) e infraestrutura preparada para produção desde o início.
+
+---
+
+### 📦 CONTEXTO E VISÃO DO PRODUTO
+
+O **B-Commerce** é um e-commerce especializado em produtos eletrônicos e de alta tecnologia, com foco em UX fluida, alta performance e checkout simplificado.
+
+**Público-alvo:** consumidores tech exigentes que valorizam agilidade e clareza nas informações de produto.
+
+---
+
+### 🧱 PRINCÍPIOS DE ARQUITETURA
+
+- **Domínios Independentes**: Cada serviço representa um *bounded context* do negócio.
+- **Comunicação Assíncrona**: RabbitMQ como padrão, REST apenas quando necessário.
+- **Arquitetura Limpa (Clean Architecture)**: Núcleo de domínio isolado, com separação clara entre camadas de aplicação, domínio e infraestrutura.
+- **Segurança Centralizada**: Keycloak (OIDC) para autenticação e autorização.
+- **Infraestrutura como Código (IaC)**: Inicialmente com Docker Compose, evolução futura para Kubernetes.
+
+---
+
+### 🛠️ STACK TECNOLÓGICA (.NET Edition)
+
+| Camada | Tecnologias |
+| --- | --- |
+| **Backend** | .NET 8, ASP.NET Core (Minimal APIs), Entity Framework Core, MassTransit |
+| **Frontend** | Angular 20, TailwindCSS, RxJS, OIDC Client, Signals, Standalone Components |
+| **Banco** | PostgreSQL (relacional), MongoDB (cart/sessão – pós-MVP) |
+| **Mensageria** | RabbitMQ, MassTransit (com integração nativa no .NET) |
+| **Identidade** | Keycloak (OIDC) |
+| **Deploy & Infra** | Docker, Docker Compose, (futuramente Kubernetes) |
+| **Testes** | xUnit, Moq, Testcontainers (.NET), FluentAssertions |
+| **Gateway** | YARP (Yet Another Reverse Proxy) + DelegatingHandlers + Polly |
+
+---
+
+### 🧭 ROADMAP DE DESENVOLVIMENTO
+
+---
+
+### 🧩 FASE 1: Infraestrutura (`infra-service`)
+
+🔧 **Provisionamento via Docker Compose**:
+
+- Keycloak com realm `b-commerce-realm`, clients `frontend` e `backend`.
+- RabbitMQ com exchanges e filas padrão.
+- PostgreSQL com volumes persistentes.
+
+✅ **Aceite:** Serviços acessíveis, login no Keycloak e RabbitMQ funcionando.
+
+---
+
+### 👤 FASE 2: Client Service
+
+- CRUD completo de usuários
+- Integração com Keycloak (JWT Claims)
+- Gerenciamento de endereços e consentimento LGPD
+
+🧪 **Stack**:
+
+.NET 8, ASP.NET Core, EF Core, FluentValidation, MassTransit, PostgreSQL, **Clean Architecture**, xUnit, Testcontainers
+
+✅ **Aceite:** Endpoints REST, tokens JWT validados, testes cobrindo >80%.
+
+---
+
+### 📦 FASE 3: Catalog Service
+
+- CRUD de produtos e categorias
+- API de busca
+- Publicação de eventos (`product.stock.changed`)
+
+🧪 **Stack**:
+
+.NET 8, EF Core, MassTransit, RabbitMQ, PostgreSQL, Testcontainers
+
+✅ **Aceite:** Estrutura robusta e eventos rastreáveis no broker.
+
+---
+
+### 🌐 FASE 4: API Gateway
+
+- Roteamento com YARP
+- Middleware JWT + OIDC
+- Circuit Breaker e Retry com Polly
+- Logging e CORS centralizados
+
+🧪 **Stack**:
+
+YARP, Polly, Serilog, ASP.NET Core Authentication OIDC
+
+✅ **Aceite:** Gateway funcionando, frontend interage só por ele.
+
+---
+
+### 🛒 FASE 5: Cart Service
+
+- CRUD de itens no carrinho
+- Cálculo de totais
+
+🧪 **Stack**:
+
+.NET 8, MongoDB (Document Store), **Clean Architecture**, xUnit
+
+✅ **Aceite:** Cálculos corretos, endpoints protegidos via OIDC.
+
+---
+
+### 💳 FASE 6: Sales Service
+
+- Finalização de pedidos
+- Validação de estoque e preço via eventos
+- Mock de pagamento
+- Publicação de status de pedido
+
+🧪 **Stack**:
+
+.NET 8, MassTransit, RabbitMQ, PostgreSQL, **Clean Architecture**
+
+✅ **Aceite:** Pedidos válidos, integração por eventos funcionando.
+
+---
+
+### 🖥️ FASE 7: Frontend (Angular 20)
+
+- Autenticação com OIDC
+- Listagem de produtos
+- Carrinho e checkout
+- Tela de pedidos do usuário
+
+🧪 **Stack**:
+
+Angular 20, Standalone Components, Signals, TailwindCSS, Zod, OIDC Client
+
+✅ **Aceite:** Navegação fluida, integração total, validações robustas.
+
+---
+
+### 🚀 PÓS-MVP: Futuro
+
+### 🔭 Observabilidade
+
+OpenTelemetry, Prometheus, Grafana, Loki, Tempo, Dotnet Metrics
+
+### 🏗️ Arquitetura
+
+- Banco separado por serviço (PostgreSQL/Mongo)
+- Kubernetes, Service Mesh
+- Elasticsearch/OpenSearch
+
+---
+
+### 📌 REQUISITOS NÃO FUNCIONAIS (NFRs)
+
+| Item | Meta |
+| --- | --- |
+| **Performance** | APIs com p95 < 200ms, LCP < 2.5s no frontend |
+| **Escalabilidade** | Microsserviços com escalonamento horizontal |
+| **Segurança** | OWASP Top 10, HTTPS obrigatório, nada de secrets no código |
+| **Confiabilidade** | SLA ≥ 99.9%, isolamento de falhas entre serviços |
+
+---
+
+### 🧪 ENGENHARIA E DEVOPS
+
+- **Git Flow:** `features` → `develop` → `main`
+- **CI/CD:** GitHub Actions/GitLab CI com build, test, lint e deploy
+- **Qualidade:** Análise estática com SonarQube + revisões obrigatórias
