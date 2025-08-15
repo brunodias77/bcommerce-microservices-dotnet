@@ -1,3 +1,3 @@
 namespace ClientService.Domain.Validations;
 
-public record Error();
+public record Error(string Message);
