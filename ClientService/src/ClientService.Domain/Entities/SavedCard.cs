@@ -1,13 +1,15 @@
+using ClientService.Domain.Common;
 using ClientService.Domain.Enums;
+using ClientService.Domain.Validations;
 using ClientService.Domain.ValueObjects;
 
 namespace ClientService.Domain.Entities;
 
-public class SavedCard
+public class SavedCard : Entity
 {
     public Guid ClientId { get; private set; }
     public string? Nickname { get; private set; }
-    public CardNumber CardNumber { get; private set; }
+    public string LastFourDigits { get; private set; } // Mudar de CardNumber para LastFourDigits
     public CardBrand Brand { get; private set; }
     public string GatewayToken { get; private set; }
     public DateTime ExpiryDate { get; private set; }
@@ -16,13 +18,14 @@ public class SavedCard
 
     private SavedCard() { } // EF Constructor
 
-    private SavedCard(Guid clientId, string? nickname, CardNumber cardNumber, 
-        CardBrand brand, string gatewayToken, DateTime expiryDate, 
+    private SavedCard(Guid clientId, string? nickname, string lastFourDigits,
+        CardBrand brand, string gatewayToken, DateTime expiryDate,
         bool isDefault = false)
     {
+        Id = Guid.NewGuid();
         ClientId = clientId;
         Nickname = nickname;
-        CardNumber = cardNumber;
+        LastFourDigits = lastFourDigits;
         Brand = brand;
         GatewayToken = gatewayToken;
         ExpiryDate = expiryDate;
@@ -30,12 +33,16 @@ public class SavedCard
         Version = 1;
     }
 
-    public static SavedCard Create(Guid clientId, string? nickname, string cardNumber,
+    public static SavedCard Create(Guid clientId, string? nickname, string lastFourDigits,
         CardBrand brand, string gatewayToken, DateTime expiryDate,
         bool isDefault = false)
     {
-        var cardNumberVO = CardNumber.Create(cardNumber);
-        return new SavedCard(clientId, nickname, cardNumberVO, brand, gatewayToken, 
+        return new SavedCard(clientId, nickname, lastFourDigits, brand, gatewayToken,
             expiryDate, isDefault);
+    }
+    
+    public override void Validate(IValidationHandler handler)
+    {
+        throw new NotImplementedException();
     }
 }

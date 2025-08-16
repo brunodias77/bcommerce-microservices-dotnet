@@ -1,12 +1,14 @@
+using ClientService.Domain.Common;
 using ClientService.Domain.Enums;
+using ClientService.Domain.Validations;
 
 namespace ClientService.Domain.Entities;
 
-public class Address
+public class Address : Entity
 {
     public Guid ClientId { get; private set; }
     public AddressType Type { get; private set; }
-    public string RecipientName { get; private set; }
+    // public string RecipientName { get; private set; } // REMOVER
     public string PostalCode { get; private set; }
     public string Street { get; private set; }
     public string StreetNumber { get; private set; }
@@ -21,7 +23,7 @@ public class Address
 
     private Address() { } // EF Constructor
 
-    private Address(Guid clientId, AddressType type, string recipientName, 
+    private Address(Guid clientId, AddressType type, 
                    string postalCode, string street, string streetNumber,
                    string? complement, string neighborhood, string city, 
                    string stateCode, string countryCode, string? phone, 
@@ -29,7 +31,6 @@ public class Address
     {
         ClientId = clientId;
         Type = type;
-        RecipientName = recipientName;
         PostalCode = postalCode;
         Street = street;
         StreetNumber = streetNumber;
@@ -43,15 +44,19 @@ public class Address
         Version = 1;
     }
 
-    public static Address Create(Guid clientId, AddressType type, string recipientName,
+    public static Address Create(Guid clientId, AddressType type,
                                string postalCode, string street, string streetNumber,
                                string? complement, string neighborhood, string city,
                                string stateCode, string countryCode = "BR", 
                                string? phone = null, bool isDefault = false)
     {
-        return new Address(clientId, type, recipientName, postalCode, street, 
+        return new Address(clientId, type, postalCode, street, 
                          streetNumber, complement, neighborhood, city, stateCode, 
                          countryCode, phone, isDefault);
     }
 
+    public override void Validate(IValidationHandler handler)
+    {
+        throw new NotImplementedException();
+    }
 }

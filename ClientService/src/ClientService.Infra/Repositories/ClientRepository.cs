@@ -2,81 +2,112 @@ using ClientService.Domain.Aggregates;
 using ClientService.Domain.Repositories;
 using ClientService.Domain.ValueObjects;
 using ClientService.Infra.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClientService.Infra.Repositories;
 
 public class ClientRepository : IClientRepository
 {
-    
     private readonly ClientDbContext _context;
 
     public ClientRepository(ClientDbContext context)
     {
         _context = context;
     }
-    
-    public Task Insert(Client aggregate, CancellationToken cancellationToken)
+
+    // Métodos da interface base IRepository<Client>
+    public async Task Insert(Client aggregate, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        await _context.Clients.AddAsync(aggregate, cancellationToken);
     }
 
-    public Task<Client?> Get(Guid id, CancellationToken cancellationToken)
+    public async Task<Client?> Get(Guid id, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     public Task Delete(Client aggregate, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        // Soft delete - apenas marca como deletado
+        aggregate.MarkAsDeleted();
+        return Task.CompletedTask;
     }
 
     public Task Update(Client aggregate, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        _context.Clients.Update(aggregate);
+        return Task.CompletedTask;
     }
 
-    public Task<Client?> GetByIdAsync(Guid clientId, CancellationToken cancellationToken = default)
+    // Métodos específicos da interface IClientRepository
+    public async Task<Client?> GetByIdAsync(Guid clientId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.Id == clientId, cancellationToken);
     }
 
-    public Task<Client?> GetByEmailAsync(Email email, CancellationToken cancellationToken = default)
+    public async Task<Client?> GetByEmailAsync(Email email, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.Email == email, cancellationToken);
     }
 
-    public Task<Client?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Client?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var emailValueObject = Domain.ValueObjects.Email.Create(email);
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.Email == emailValueObject, cancellationToken);
     }
 
-    public Task<Client?> GetByCpfAsync(Cpf cpf, CancellationToken cancellationToken = default)
+    public async Task<Client?> GetByCpfAsync(Cpf cpf, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.Cpf == cpf, cancellationToken);
     }
 
-    public Task<bool> ExistsByEmailAsync(Email email, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByEmailAsync(Email email, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .AnyAsync(c => c.Email == email, cancellationToken);
     }
 
-    public Task<bool> ExistsByCpfAsync(Cpf cpf, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByCpfAsync(Cpf cpf, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Clients
+            .AnyAsync(c => c.Cpf == cpf, cancellationToken);
     }
 
-    public Task AddAsync(Client client, CancellationToken cancellationToken = default)
+    public async Task AddAsync(Client client, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await _context.Clients.AddAsync(client, cancellationToken);
     }
 
     public Task UpdateAsync(Client client, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        _context.Clients.Update(client);
+        return Task.CompletedTask;
     }
 
     public Task DeleteAsync(Client client, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        // Soft delete - apenas marca como deletado
+        client.MarkAsDeleted();
+        return Task.CompletedTask;
     }
 }

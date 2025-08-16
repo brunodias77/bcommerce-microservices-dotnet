@@ -1,3 +1,4 @@
+using ClientService.Application.Services;
 using ClientService.Application.UseCases.Clients.Create;
 
 namespace ClientService.Api.Configurations;
@@ -19,7 +20,7 @@ public static class ApplicationDependencyInjection
 
     private static void AddServices(IServiceCollection services)
     {
-        // services.AddScoped<IKeycloakService, KeycloakService>();
+        services.AddScoped<IKeycloakService, KeycloakService>();
     }
 
     private static void AddEvents(IServiceCollection services, IConfiguration configuration)

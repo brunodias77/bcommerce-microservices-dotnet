@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 // Carregar variáveis do arquivo .env
-Env.Load();
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,13 +23,13 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Client Service API", 
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Client Service API",
         Version = "v1",
         Description = "API para gerenciamento de clientes"
     });
-    
+
     // Configuração para JWT Bearer no Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -39,7 +39,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-    
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -67,11 +67,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         var keycloakConfig = builder.Configuration.GetSection("Keycloak");
-        
+
         options.Authority = keycloakConfig["Authority"];
         options.RequireHttpsMetadata = false; // Apenas para desenvolvimento
         options.Audience = keycloakConfig["Audience"];
-        
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -85,7 +85,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = "realm_access/roles",
             NameClaimType = "preferred_username"
         };
-        
+
         // Eventos JWT para tratamento de erros
         options.Events = new JwtBearerEvents
         {
@@ -102,28 +102,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 context.HandleResponse();
                 context.Response.StatusCode = 401;
                 context.Response.ContentType = "application/json";
-                
+
                 var result = JsonSerializer.Serialize(new
                 {
                     error = "unauthorized",
                     message = "Token de acesso requerido",
                     timestamp = DateTime.UtcNow
                 });
-                
+
                 return context.Response.WriteAsync(result);
             },
             OnForbidden = context =>
             {
                 context.Response.StatusCode = 403;
                 context.Response.ContentType = "application/json";
-                
+
                 var result = JsonSerializer.Serialize(new
                 {
                     error = "forbidden",
                     message = "Acesso negado. Permissões insuficientes",
                     timestamp = DateTime.UtcNow
                 });
-                
+
                 return context.Response.WriteAsync(result);
             },
             OnTokenValidated = context =>

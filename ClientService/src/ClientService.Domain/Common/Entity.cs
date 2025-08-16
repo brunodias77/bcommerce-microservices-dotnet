@@ -40,6 +40,8 @@ public abstract class Entity
     }
     
     public static bool operator !=(Entity? left, Entity? right) => !(left == right);
-
-
+    public void MarkAsDeleted()
+    {
+        DeletedAt = DateTime.UtcNow;
+    }
 }

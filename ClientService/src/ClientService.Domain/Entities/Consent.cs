@@ -1,8 +1,10 @@
+using ClientService.Domain.Common;
 using ClientService.Domain.Enums;
+using ClientService.Domain.Validations;
 
 namespace ClientService.Domain.Entities;
 
-public class Consent
+public class Consent : Entity
 {
     public Guid ClientId { get; private set; }
     public ConsentType Type { get; private set; }
@@ -24,5 +26,10 @@ public class Consent
     public static Consent Create(Guid clientId, ConsentType type, bool isGranted, string? termsVersion = null)
     {
         return new Consent(clientId, type, isGranted, termsVersion);
+    }
+
+    public override void Validate(IValidationHandler handler)
+    {
+        throw new NotImplementedException();
     }
 }

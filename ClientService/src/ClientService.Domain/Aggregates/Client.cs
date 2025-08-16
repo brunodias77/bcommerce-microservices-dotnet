@@ -34,6 +34,34 @@ public class Client : AggregateRoot
 
     private Client() { } // EF Core
     
+    public static Client Create(
+        Guid? keycloakUserId,
+        string firstName,
+        string lastName,
+        string email,
+        string passwordHash,
+        string role)
+    {
+        var emailValueObject = Email.Create(email);
+        var userRole = Enum.Parse<UserRole>(role.ToUpper());
+        
+        return new Client
+        {
+            Id = Guid.NewGuid(),
+            KeycloakUserId = keycloakUserId,
+            FirstName = firstName,
+            LastName = lastName,
+            Email = emailValueObject,
+            PasswordHash = passwordHash,
+            Role = userRole,
+            Status = ClientStatus.Ativo,
+            NewsletterOptIn = false,
+            FailedLoginAttempts = 0,
+            Version = 1,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+    
     public override void Validate(IValidationHandler handler)
     {
         throw new NotImplementedException();
