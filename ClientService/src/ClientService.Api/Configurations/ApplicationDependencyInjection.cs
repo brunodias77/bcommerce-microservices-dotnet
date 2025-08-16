@@ -1,8 +1,8 @@
-using ClientService.Application.EventHandlers;
 using ClientService.Application.Services;
 using ClientService.Application.UseCases.Clients.Create;
 using ClientService.Domain.Common;
 using ClientService.Domain.Events.Clients;
+using ClientService.Infra.Services;
 
 namespace ClientService.Api.Configurations;
 
@@ -28,6 +28,6 @@ public static class ApplicationDependencyInjection
 
     private static void AddEvents(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IDomainEventHandler<CreateClientKeycloak>, CreateClientKeycloakHandler>();
+        services.AddScoped<IDomainEventHandler<ClientCreatedEvent>, ClientCreatedEventHandler>();
     }
 }
