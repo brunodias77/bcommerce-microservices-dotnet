@@ -16,4 +16,8 @@
       <ProjectReference Include="..\ClientService.Domain\ClientService.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Events\" />
+    </ItemGroup>
+
 </Project>

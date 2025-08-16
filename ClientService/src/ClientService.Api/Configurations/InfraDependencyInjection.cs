@@ -2,6 +2,7 @@ using ClientService.Domain.Common;
 using ClientService.Domain.Repositories;
 using ClientService.Infra.Data;
 using ClientService.Infra.Repositories;
+using ClientService.Infra.Services; // Adicionar este using
 using Microsoft.EntityFrameworkCore;
 
 namespace ClientService.Api.Configurations;
@@ -57,8 +58,7 @@ public static class InfraDependencyInjection
 
     private static void AddEvents(IServiceCollection services, IConfiguration configuration)
     {
-        // services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
-
+        services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
     }
 
     private static void AddLoggedUser(IServiceCollection services, IConfiguration configuration)

@@ -1,7 +1,6 @@
 namespace ClientService.Domain.Common;
 
-public interface IDomainEventHandler<TDomainEvent> where TDomainEvent : DomainEvent
+public interface IDomainEventHandler<in T> where T : DomainEvent
 {
-
-    Task HandleAsync(TDomainEvent domainEvent, CancellationToken cancellationToken);
+    Task Handle(T domainEvent, CancellationToken cancellationToken = default);
 }
