@@ -7,7 +7,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
+        <PackageReference Include="DotNetEnv" Version="3.1.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.19" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.19">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ClientService.Application\ClientService.Application.csproj" />
+      <ProjectReference Include="..\ClientService.Domain\ClientService.Domain.csproj" />
+      <ProjectReference Include="..\ClientService.Infra\ClientService.Infra.csproj" />
     </ItemGroup>
 
 </Project>

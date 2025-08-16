@@ -5,12 +5,14 @@ namespace ClientService.Domain.Common;
 public abstract class Entity
 {
     public Guid Id { get; protected set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-    public DateTime? DeletedAt { get; set; }
+    public DateTime CreatedAt { get; protected set; }
+    public DateTime? UpdatedAt { get; protected set; }
+    public DateTime? DeletedAt { get; protected set; }
     
-    protected Entity() => Id = Guid.NewGuid();
-
+    protected Entity() {
+        Id = Guid.NewGuid();
+        CreatedAt = DateTime.UtcNow; // Podemos até definir a data de criação aqui!
+    }
     public abstract void Validate(IValidationHandler handler);
     
     public override bool Equals(object? obj)
@@ -38,6 +40,8 @@ public abstract class Entity
     }
     
     public static bool operator !=(Entity? left, Entity? right) => !(left == right);
-
-
+    public void MarkAsDeleted()
+    {
+        DeletedAt = DateTime.UtcNow;
+    }
 }
