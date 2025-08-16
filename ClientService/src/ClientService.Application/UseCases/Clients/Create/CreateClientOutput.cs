@@ -1,0 +1,3 @@
+namespace ClientService.Application.UseCases.Clients.Create;
+
+public record CreateClientOutput();
