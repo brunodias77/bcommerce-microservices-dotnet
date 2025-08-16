@@ -1,6 +1,7 @@
 namespace ClientService.Domain.Enums;
 
-public class CardType
+public enum CardType
 {
-    
+    Credit,
+    Debit
 }

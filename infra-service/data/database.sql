@@ -164,6 +164,7 @@ $$ LANGUAGE plpgsql;
 -- Tabela de Clientes
 CREATE TABLE clients (
     client_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    keycloak_user_id UUID UNIQUE, -- vínculo com Keycloak
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(155) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,

@@ -1,6 +1,14 @@
 namespace ClientService.Domain.Enums;
-
-public class CardBrand
+public enum CardBrand
 {
-    
+    Visa,
+    Mastercard,
+    Amex,
+    Elo,
+    Hipercard,
+    DinersClub,
+    Discover,
+    Jcb,
+    Aura,
+    Other
 }

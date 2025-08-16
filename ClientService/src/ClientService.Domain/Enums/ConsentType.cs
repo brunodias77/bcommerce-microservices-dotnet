@@ -1,6 +1,12 @@
 namespace ClientService.Domain.Enums;
 
-public class ConsentType
+public enum ConsentType
 {
-    
+    MarketingEmail,
+    NewsletterSubscription,
+    TermsOfService,
+    PrivacyPolicy,
+    CookiesEssential,
+    CookiesAnalytics,
+    CookiesMarketing
 }
