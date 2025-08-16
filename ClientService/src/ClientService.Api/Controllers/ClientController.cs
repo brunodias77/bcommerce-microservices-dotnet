@@ -29,7 +29,7 @@ public class ClientController : ControllerBase
     /// <param name="input">Dados do cliente a ser criado</param>
     /// <param name="cancellationToken">Token de cancelamento</param>
     /// <returns>Resultado da criação do cliente</returns>
-    [HttpPost]
+    [HttpPost("create-user")]
     public async Task<IActionResult> CreateClient(
         [FromBody] CreateClientInput input, 
         CancellationToken cancellationToken = default)
