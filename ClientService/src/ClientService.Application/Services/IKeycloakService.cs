@@ -26,6 +26,19 @@ public interface IKeycloakService
     /// <returns>True se a operação foi bem-sucedida</returns>
     Task<bool> AssignRoleToUserAsync(string userId, string roleName);
 
+    /// <summary>
+    /// Deleta usuário do Keycloak
+    /// </summary>
+    /// <param name="userId">ID do usuário a ser deletado</param>
+    /// <returns>Resultado da operação de deleção</returns>
+    Task<Result<bool, Notification>> DeleteUserAsync(string userId);
+
+    /// <summary>
+    /// Autentica usuário no Keycloak
+    /// </summary>
+    /// <param name="request">Dados de login do usuário</param>
+    /// <returns>Resultado da operação com token de acesso</returns>
+    Task<Result<KeycloakLoginResult, Notification>> LoginAsync(KeycloakLoginRequest request);
 }
 
 public record CreateKeycloakUserRequest(
@@ -37,8 +50,19 @@ public record CreateKeycloakUserRequest(
     string? Role = "USER"
 );
 
-
 public record KeycloakCreateUserResult(
     string UserId,
     bool RoleAssigned
+);
+
+public record KeycloakLoginRequest(
+    string Username,
+    string Password
+);
+
+public record KeycloakLoginResult(
+    string AccessToken,
+    string RefreshToken,
+    int ExpiresIn,
+    string TokenType = "Bearer"
 );

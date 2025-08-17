@@ -2,11 +2,10 @@ using ClientService.Application.Common;
 using ClientService.Application.Services;
 using ClientService.Domain.Aggregates;
 using ClientService.Domain.Common;
-using ClientService.Domain.Events.Clients;
 using ClientService.Domain.Repositories;
 using ClientService.Domain.Validations;
 using ClientService.Domain.ValueObjects;
-using ClientService.Domain.Enums; // Adicionar este using
+using ClientService.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace ClientService.Application.UseCases.Clients.Create;
@@ -71,28 +70,39 @@ public class CreateClientUseCase : ICreateClientUseCase
             return Result<CreateClientOutput, Notification>.Fail(notification);
         }
     
+        // 2. Iniciar transação para operações no banco
+        await _unitOfWork.BeginTransactionAsync();
+        
         try
         {
-            // 2. Disparar evento para criar cliente no banco
-            var createClientEvent = new CreateClientKeycloak(
-                keycloakResult.Value?.UserId ?? string.Empty,
-                input.Username,
-                input.Email,
+            // 3. Criar cliente no banco de dados
+            var client = Client.Create(
+                Guid.Parse(keycloakResult.Value?.UserId ?? string.Empty),
                 input.FirstName,
                 input.LastName,
-                Enum.Parse<UserRole>(input.Role ?? "USER"),
-                null, // Phone - não disponível no CreateClientInput
-                null, // DateOfBirth - não disponível no CreateClientInput  
-                null, // Cpf - não disponível no CreateClientInput
-                false // NewsletterOptIn - não disponível no CreateClientInput
+                input.Email,
+                input.Password, // Será hasheado no domínio se necessário
+                input.Role ?? "USER"
             );
-    
-            await _domainEventPublisher.PublishAsync(createClientEvent);
+
+            await _clientRepository.AddAsync(client);
             
-            // Retornar sucesso imediatamente após disparar o evento
+            // 4. Salvar mudanças no banco
+            await _unitOfWork.SaveChangesAsync();
+            
+            // 5. Publicar eventos do domínio
+            if (client.HasEvents)
+            {
+                await _domainEventPublisher.PublishAsync(client.Events);
+                client.ClearEvents();
+            }
+            
+            // 6. Confirmar transação
+            await _unitOfWork.CommitTransactionAsync();
+            
             var output = new CreateClientOutput(
-                Message: "Usuário criado no Keycloak com sucesso. Cliente será criado em breve.",
-                UserId: keycloakResult.Value?.UserId?.ToString(),
+                Message: "Cliente criado com sucesso.",
+                UserId: client.Id.ToString(),
                 Username: input.Username,
                 Email: input.Email,
                 Role: input.Role ?? "USER",
@@ -103,20 +113,26 @@ public class CreateClientUseCase : ICreateClientUseCase
         }
         catch (Exception ex)
         {
-            // Se falhar ao disparar evento, tentar excluir usuário do Keycloak
+            _logger.LogError(ex, "Erro ao criar cliente para usuário Keycloak {UserId}", keycloakResult.Value?.UserId);
+            
+            // Rollback da transação
+            await _unitOfWork.RollbackTransactionAsync();
+            
+            // Se falhar ao salvar cliente, tentar excluir usuário do Keycloak para manter consistência
             if (keycloakResult.Value?.UserId != null)
             {
                 try
                 {
                     // await _keycloakService.DeleteUserAsync(keycloakResult.Value.UserId);
+                    _logger.LogInformation("Usuário Keycloak {UserId} removido devido a falha na criação do cliente", keycloakResult.Value.UserId);
                 }
-                catch
+                catch (Exception rollbackEx)
                 {
-                    // Log do erro, mas não falha a operação principal
+                    _logger.LogError(rollbackEx, "Falha ao remover usuário Keycloak {UserId} durante rollback", keycloakResult.Value.UserId);
                 }
             }
             
-            notification.Add(new Error("event", $"Erro ao processar criação do cliente: {ex.Message}"));
+            notification.Add(new Error("client", $"Erro ao criar cliente: {ex.Message}"));
             return Result<CreateClientOutput, Notification>.Fail(notification);
         }
     }

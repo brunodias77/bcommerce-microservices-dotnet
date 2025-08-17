@@ -70,7 +70,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Authority = keycloakConfig["Authority"];
         options.RequireHttpsMetadata = false; // Apenas para desenvolvimento
-        options.Audience = keycloakConfig["Audience"];
+        // Remover a linha: options.Audience = keycloakConfig["Audience"];
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -79,7 +79,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = keycloakConfig["Authority"],
-            ValidAudience = keycloakConfig["Audience"],
+            // Aceitar múltiplas audiences
+            ValidAudiences = new[] { "account", "b-commerce-backend" },
             ClockSkew = TimeSpan.FromMinutes(5),
             // Configuração correta para roles do Keycloak
             RoleClaimType = "realm_access/roles",
@@ -91,9 +92,36 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnAuthenticationFailed = context =>
             {
+                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
                 if (context.Exception is SecurityTokenExpiredException)
                 {
-                    context.Response.Headers.Add("Token-Expired", "true");
+                    context.Response.Headers.Append("Token-Expired", "true");
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("Token validated successfully");
+                var claims = context.Principal?.Claims?.Select(c => $"{c.Type}: {c.Value}") ?? Enumerable.Empty<string>();
+                Console.WriteLine($"Claims: {string.Join(", ", claims)}");
+                
+                // Processar claims do Keycloak
+                var claimsIdentity = context.Principal?.Identity as ClaimsIdentity;
+                if (claimsIdentity != null)
+                {
+                    // Extrair roles do token Keycloak
+                    var realmAccess = context.Principal?.FindFirst("realm_access")?.Value;
+                    if (!string.IsNullOrEmpty(realmAccess))
+                    {
+                        var realmAccessObj = JsonSerializer.Deserialize<JsonElement>(realmAccess);
+                        if (realmAccessObj.TryGetProperty("roles", out var rolesElement))
+                        {
+                            foreach (var role in rolesElement.EnumerateArray())
+                            {
+                                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.GetString() ?? ""));
+                            }
+                        }
+                    }
                 }
                 return Task.CompletedTask;
             },
@@ -125,28 +153,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 });
 
                 return context.Response.WriteAsync(result);
-            },
-            OnTokenValidated = context =>
-            {
-                // Processar claims do Keycloak
-                var claimsIdentity = context.Principal?.Identity as ClaimsIdentity;
-                if (claimsIdentity != null)
-                {
-                    // Extrair roles do token Keycloak
-                    var realmAccess = context.Principal?.FindFirst("realm_access")?.Value;
-                    if (!string.IsNullOrEmpty(realmAccess))
-                    {
-                        var realmAccessObj = JsonSerializer.Deserialize<JsonElement>(realmAccess);
-                        if (realmAccessObj.TryGetProperty("roles", out var rolesElement))
-                        {
-                            foreach (var role in rolesElement.EnumerateArray())
-                            {
-                                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role.GetString() ?? ""));
-                            }
-                        }
-                    }
-                }
-                return Task.CompletedTask;
             }
         };
     });

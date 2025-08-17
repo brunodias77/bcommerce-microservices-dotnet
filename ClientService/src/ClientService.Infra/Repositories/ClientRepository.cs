@@ -81,6 +81,21 @@ public class ClientRepository : IClientRepository
             .FirstOrDefaultAsync(c => c.Cpf == cpf, cancellationToken);
     }
 
+    public async Task<Client?> GetByKeycloakUserIdAsync(string keycloakUserId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(keycloakUserId))
+            return null;
+
+        if (!Guid.TryParse(keycloakUserId, out var keycloakUserIdGuid))
+            return null;
+
+        return await _context.Clients
+            .Include(c => c.Addresses)
+            .Include(c => c.Consents)
+            .Include(c => c.SavedCards)
+            .FirstOrDefaultAsync(c => c.KeycloakUserId == keycloakUserIdGuid, cancellationToken);
+    }
+
     public async Task<bool> ExistsByEmailAsync(Email email, CancellationToken cancellationToken = default)
     {
         return await _context.Clients
