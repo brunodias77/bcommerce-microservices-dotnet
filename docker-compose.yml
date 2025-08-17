@@ -108,6 +108,42 @@ services:
       start_period: 40s
     restart: unless-stopped
   
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./ApiGateway
+      dockerfile: Dockerfile
+    container_name: b-commerce-api-gateway
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Keycloak__Authority=http://keycloak:8080/realms/b-commerce-realm
+      - ReverseProxy__Clusters__client-service-cluster__Destinations__client-service__Address=http://client-service:80/
+    depends_on:
+      - keycloak
+      - client-service
+    networks:
+      - b-commerce-network
+    restart: unless-stopped
+
+  # Client Service
+  client-service:
+    build:
+      context: ./ClientService
+      dockerfile: Dockerfile
+    container_name: b-commerce-client-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=bcommerce;Username=bcommerce_user;Password=bcommerce_pass;Port=5432
+      - Keycloak__Authority=http://keycloak:8080/realms/b-commerce-realm
+    depends_on:
+      - postgres
+      - keycloak
+    networks:
+      - b-commerce-network
+    restart: unless-stopped
+
 networks:
   b-commerce-network:
     driver: bridge
