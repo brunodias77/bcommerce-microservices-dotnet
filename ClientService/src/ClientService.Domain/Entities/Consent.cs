@@ -30,6 +30,17 @@ public class Consent : Entity
 
     public override void Validate(IValidationHandler handler)
     {
-        throw new NotImplementedException();
+        // Validação do ClientId
+        if (ClientId == Guid.Empty)
+            handler.Add(new Error("Consent.ClientId", "ClientId é obrigatório"));
+    
+        // Validação do TermsVersion (opcional, mas se fornecido deve ser válido)
+        if (!string.IsNullOrEmpty(TermsVersion) && TermsVersion.Length > 50)
+            handler.Add(new Error("Consent.TermsVersion", "Versão dos termos deve ter no máximo 50 caracteres"));
+    
+        // Validação específica para tipos que requerem versão dos termos
+        if ((Type == ConsentType.TermsOfService || Type == ConsentType.PrivacyPolicy) && 
+            IsGranted && string.IsNullOrWhiteSpace(TermsVersion))
+            handler.Add(new Error("Consent.TermsVersion", "Versão dos termos é obrigatória para consentimentos de Termos de Serviço e Política de Privacidade"));
     }
 }
