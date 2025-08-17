@@ -43,6 +43,30 @@ public class SavedCard : Entity
     
     public override void Validate(IValidationHandler handler)
     {
-        throw new NotImplementedException();
+        // Validação do ClientId
+        if (ClientId == Guid.Empty)
+            handler.Add(new Error("SavedCard.ClientId", "ClientId é obrigatório"));
+    
+        // Validação do Nickname (opcional)
+        if (!string.IsNullOrEmpty(Nickname) && Nickname.Length > 100)
+            handler.Add(new Error("SavedCard.Nickname", "Apelido deve ter no máximo 100 caracteres"));
+    
+        // Validação do LastFourDigits
+        if (string.IsNullOrWhiteSpace(LastFourDigits))
+            handler.Add(new Error("SavedCard.LastFourDigits", "Últimos quatro dígitos são obrigatórios"));
+        else if (LastFourDigits.Length != 4)
+            handler.Add(new Error("SavedCard.LastFourDigits", "Últimos quatro dígitos devem ter exatamente 4 caracteres"));
+        else if (!LastFourDigits.All(char.IsDigit))
+            handler.Add(new Error("SavedCard.LastFourDigits", "Últimos quatro dígitos devem conter apenas números"));
+    
+        // Validação do GatewayToken
+        if (string.IsNullOrWhiteSpace(GatewayToken))
+            handler.Add(new Error("SavedCard.GatewayToken", "Token do gateway é obrigatório"));
+        else if (GatewayToken.Length > 255)
+            handler.Add(new Error("SavedCard.GatewayToken", "Token do gateway deve ter no máximo 255 caracteres"));
+    
+        // Validação da ExpiryDate
+        if (ExpiryDate <= DateTime.UtcNow.Date)
+            handler.Add(new Error("SavedCard.ExpiryDate", "Data de vencimento deve ser futura"));
     }
 }

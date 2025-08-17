@@ -1,6 +1,7 @@
 using ClientService.Domain.Common;
 using ClientService.Domain.Entities;
 using ClientService.Domain.Enums;
+using ClientService.Domain.Events.Clients;
 using ClientService.Domain.Validations;
 using ClientService.Domain.ValueObjects;
 
@@ -45,7 +46,7 @@ public class Client : AggregateRoot
         var emailValueObject = Email.Create(email);
         var userRole = Enum.Parse<UserRole>(role.ToUpper());
         
-        return new Client
+        var client = new Client
         {
             Id = Guid.NewGuid(),
             KeycloakUserId = keycloakUserId,
@@ -60,6 +61,15 @@ public class Client : AggregateRoot
             Version = 1,
             CreatedAt = DateTime.UtcNow
         };
+
+        client.RaiseEvent(new ClientCreatedEvent(
+            client.Id,
+            client.Email.Value,
+            client.FirstName,
+            client.LastName
+        ));
+
+        return client;
     }
     
     public override void Validate(IValidationHandler handler)
