@@ -1,5 +1,7 @@
 using ClientService.Application.Services;
 using ClientService.Application.UseCases.Clients.Create;
+using ClientService.Application.UseCases.Clients.GetProfile;
+using ClientService.Application.UseCases.Clients.Login;
 using ClientService.Domain.Common;
 using ClientService.Domain.Events.Clients;
 using ClientService.Infra.Services;
@@ -18,7 +20,8 @@ public static class ApplicationDependencyInjection
     private static void AddUseCases(IServiceCollection services)
     {
         services.AddScoped<ICreateClientUseCase, CreateClientUseCase>();
-        // services.AddScoped<ILoginClientUseCase, LoginClientUseCase>();
+        services.AddScoped<ILoginClientUseCase, LoginClientUseCase>();
+        services.AddScoped<IGetClientProfileUseCase, GetClientProfileUseCase>();
     }
 
     private static void AddServices(IServiceCollection services)

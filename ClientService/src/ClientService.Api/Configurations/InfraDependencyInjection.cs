@@ -1,5 +1,6 @@
 using ClientService.Domain.Common;
 using ClientService.Domain.Repositories;
+using ClientService.Domain.Services;
 using ClientService.Infra.Data;
 using ClientService.Infra.Repositories;
 using ClientService.Infra.Services; // Adicionar este using
@@ -78,6 +79,8 @@ public static class InfraDependencyInjection
 
     private static void AddLoggedUser(IServiceCollection services)
     {
-        // services.AddScoped<ILoggedUser, LoggedUser>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ITokenProvider, TokenProvider>();
+        services.AddScoped<ILoggedUser, LoggedUser>();
     }
 }
