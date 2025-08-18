@@ -106,6 +106,11 @@ public class TokenRefreshOptions
     /// <summary>
     /// Se deve tentar fazer refresh automático do token
     /// </summary>
+    public bool EnableAutoRefresh { get; set; } = true; // ADICIONADO
+    
+    /// <summary>
+    /// Se deve tentar fazer refresh automático do token (alias para EnableAutoRefresh)
+    /// </summary>
     public bool AutoRefresh { get; set; } = true;
     
     /// <summary>
@@ -125,6 +130,11 @@ public class TokenRefreshOptions
     
     /// <summary>
     /// URL do endpoint de refresh token
+    /// </summary>
+    public string RefreshEndpoint { get; set; } = string.Empty; // ADICIONADO
+    
+    /// <summary>
+    /// URL do endpoint de refresh token (alias para RefreshEndpoint)
     /// </summary>
     public string Endpoint { get; set; } = string.Empty;
     

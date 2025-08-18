@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 namespace ApiGateway.Infrastructure.Authentication;
@@ -37,24 +38,20 @@ public class JwtAuthenticationMiddleware
     {
         try
         {
-            // Verifica se é um endpoint público
             if (IsPublicEndpoint(context.Request.Path))
             {
-                _logger.LogDebug("Public endpoint {Path} accessed, skipping authentication", 
+                _logger.LogDebug("Public endpoint {Path} accessed, skipping authentication",
                     context.Request.Path);
                 await _next(context);
                 return;
             }
 
-            // Extrai e valida o token JWT
             var authResult = await ProcessAuthenticationAsync(context);
-            
-            if (authResult.Succeeded)
+
+            if (authResult.Succeeded) // CORRETO: usar propriedade, não método
             {
-                // Define o principal do usuário no contexto
                 context.User = authResult.Principal;
-                
-                // Adiciona informações do usuário aos logs
+
                 using (_logger.BeginScope(new Dictionary<string, object>
                 {
                     ["UserId"] = authResult.Principal.FindFirst("sub")?.Value ?? "unknown",
@@ -75,7 +72,6 @@ public class JwtAuthenticationMiddleware
             await HandleAuthenticationFailureAsync(context, "Internal authentication error");
         }
     }
-
     /// <summary>
     /// Verifica se o endpoint é público (não requer autenticação)
     /// </summary>
@@ -85,7 +81,7 @@ public class JwtAuthenticationMiddleware
         if (string.IsNullOrEmpty(pathValue))
             return false;
 
-        return _options.PublicEndpoints.Any(endpoint => 
+        return _options.PublicEndpoints.Any(endpoint =>
             pathValue.StartsWith(endpoint.ToLowerInvariant(), StringComparison.OrdinalIgnoreCase));
     }
 
@@ -94,38 +90,37 @@ public class JwtAuthenticationMiddleware
     /// </summary>
     private async Task<AuthenticationResult> ProcessAuthenticationAsync(HttpContext context)
     {
-        // Extrai o token do header Authorization
         var token = ExtractTokenFromRequest(context.Request);
         if (string.IsNullOrEmpty(token))
         {
-            _logger.LogWarning("No JWT token found in request to protected endpoint {Path}", 
+            _logger.LogWarning("No JWT token found in request to protected endpoint {Path}",
                 context.Request.Path);
             return AuthenticationResult.Failed("No JWT token provided");
         }
 
-        // Valida o token
         var validationResult = await ValidateTokenAsync(token);
         if (!validationResult.IsValid)
         {
             _logger.LogWarning("JWT token validation failed: {Error}", validationResult.Error);
-            
-            // Tenta refresh se habilitado e token expirado
+
+            // CORRIGIDO - usar propriedade correta
             if (validationResult.IsExpired && _options.TokenRefresh.EnableAutoRefresh)
             {
                 var refreshResult = await TryRefreshTokenAsync(context, token);
-                if (refreshResult.Succeeded)
+                if (refreshResult.Succeeded) // CORRIGIDO - usar propriedade
                 {
                     return refreshResult;
                 }
             }
-            
-            return AuthenticationResult.Failed(validationResult.Error);
+
+            return AuthenticationResult.Failed(validationResult.Error ?? "Token validation failed");
         }
 
-        // Cria o principal com as claims
         var principal = CreateClaimsPrincipal(validationResult.Claims, context);
-        return AuthenticationResult.Succeeded(principal);
+        return AuthenticationResult.Success(principal); // CORRIGIDO - usar método estático
     }
+
+
 
     /// <summary>
     /// Extrai o token JWT da requisição
@@ -164,7 +159,7 @@ public class JwtAuthenticationMiddleware
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            
+
             // Lê o token para verificar expiração antes da validação completa
             var jwtToken = tokenHandler.ReadJwtToken(token);
             var isExpired = jwtToken.ValidTo < DateTime.UtcNow;
@@ -172,7 +167,7 @@ public class JwtAuthenticationMiddleware
             // Usa o serviço de autenticação do ASP.NET Core para validação
             using var scope = _serviceProvider.CreateScope();
             var authService = scope.ServiceProvider.GetRequiredService<IAuthenticationService>();
-            
+
             var result = await authService.AuthenticateAsync(
                 new DefaultHttpContext { Request = { Headers = { ["Authorization"] = $"Bearer {token}" } } },
                 "Bearer");
@@ -225,11 +220,11 @@ public class JwtAuthenticationMiddleware
         try
         {
             _logger.LogInformation("Attempting to refresh expired JWT token");
-            
+
             // Extrai refresh token do cookie ou header
-            var refreshToken = context.Request.Cookies["refresh_token"] ?? 
+            var refreshToken = context.Request.Cookies["refresh_token"] ??
                               context.Request.Headers["X-Refresh-Token"].FirstOrDefault();
-            
+
             if (string.IsNullOrEmpty(refreshToken))
             {
                 _logger.LogWarning("No refresh token available for token refresh");
@@ -242,17 +237,17 @@ public class JwtAuthenticationMiddleware
             {
                 // Atualiza os cookies com os novos tokens
                 UpdateTokenCookies(context.Response, newTokens);
-                
+
                 // Valida o novo token
                 var validationResult = await ValidateTokenAsync(newTokens.AccessToken);
                 if (validationResult.IsValid)
                 {
                     var principal = CreateClaimsPrincipal(validationResult.Claims, context);
                     _logger.LogInformation("Token refresh successful");
-                    return AuthenticationResult.Succeeded(principal);
+                    return AuthenticationResult.Success(principal); // CORRIGIDO: usar método estático
                 }
             }
-            
+
             _logger.LogWarning("Token refresh failed");
             return AuthenticationResult.Failed("Token refresh failed");
         }
@@ -263,11 +258,13 @@ public class JwtAuthenticationMiddleware
         }
     }
 
+
     /// <summary>
     /// Faz refresh do token com o Keycloak
     /// </summary>
     private async Task<TokenResponse?> RefreshTokenWithKeycloakAsync(string refreshToken)
     {
+        // CORRIGIDO - usar propriedade correta
         if (string.IsNullOrEmpty(_options.TokenRefresh.RefreshEndpoint) ||
             string.IsNullOrEmpty(_options.TokenRefresh.ClientId))
         {
@@ -275,7 +272,7 @@ public class JwtAuthenticationMiddleware
         }
 
         using var httpClient = new HttpClient();
-        
+
         var requestData = new Dictionary<string, string>
         {
             ["grant_type"] = "refresh_token",
@@ -289,9 +286,10 @@ public class JwtAuthenticationMiddleware
         }
 
         var requestContent = new FormUrlEncodedContent(requestData);
-        
+
+        // CORRIGIDO - usar propriedade correta
         var response = await httpClient.PostAsync(_options.TokenRefresh.RefreshEndpoint, requestContent);
-        
+
         if (response.IsSuccessStatusCode)
         {
             var responseContent = await response.Content.ReadAsStringAsync();
@@ -318,7 +316,7 @@ public class JwtAuthenticationMiddleware
         };
 
         response.Cookies.Append("access_token", tokens.AccessToken, cookieOptions);
-        
+
         if (!string.IsNullOrEmpty(tokens.RefreshToken))
         {
             var refreshCookieOptions = new CookieOptions
@@ -328,7 +326,7 @@ public class JwtAuthenticationMiddleware
                 SameSite = SameSiteMode.Strict,
                 Expires = DateTimeOffset.UtcNow.AddDays(30) // Refresh token geralmente tem vida longa
             };
-            
+
             response.Cookies.Append("refresh_token", tokens.RefreshToken, refreshCookieOptions);
         }
     }
@@ -339,36 +337,36 @@ public class JwtAuthenticationMiddleware
     private ClaimsPrincipal CreateClaimsPrincipal(IEnumerable<Claim> claims, HttpContext context)
     {
         var claimsIdentity = new ClaimsIdentity(claims, "Bearer");
-        
+
         // Adiciona claims de contexto
         claimsIdentity.AddClaim(new Claim("auth_time", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()));
         claimsIdentity.AddClaim(new Claim("request_ip", context.Connection.RemoteIpAddress?.ToString() ?? "unknown"));
         claimsIdentity.AddClaim(new Claim("user_agent", context.Request.Headers["User-Agent"].FirstOrDefault() ?? "unknown"));
-        
+
         return new ClaimsPrincipal(claimsIdentity);
     }
 
     /// <summary>
     /// Trata falhas de autenticação
     /// </summary>
-    private async Task HandleAuthenticationFailureAsync(HttpContext context, string error)
+    private async Task HandleAuthenticationFailureAsync(HttpContext context, string? error)
     {
         context.Response.StatusCode = 401;
         context.Response.ContentType = "application/json";
-        
+
         var errorResponse = new
         {
             error = "unauthorized",
             message = "Authentication failed",
-            details = error,
+            details = error ?? "Unknown error", // CORRIGIDO - null check
             timestamp = DateTimeOffset.UtcNow
         };
-        
+
         var jsonResponse = JsonSerializer.Serialize(errorResponse, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
-        
+
         await context.Response.WriteAsync(jsonResponse);
     }
 
@@ -392,6 +390,9 @@ public class JwtAuthenticationMiddleware
         public ClaimsPrincipal Principal { get; private set; } = new();
         public string? Failure { get; private set; }
 
+        // Construtor privado para forçar uso dos métodos estáticos
+        private AuthenticationResult() { }
+
         public static AuthenticationResult Success(ClaimsPrincipal principal)
         {
             return new AuthenticationResult
@@ -406,10 +407,11 @@ public class JwtAuthenticationMiddleware
             return new AuthenticationResult
             {
                 Succeeded = false,
-                Failure = error
+                Failure = error ?? "Authentication failed"
             };
         }
     }
+
 
     /// <summary>
     /// Resposta do endpoint de refresh de token

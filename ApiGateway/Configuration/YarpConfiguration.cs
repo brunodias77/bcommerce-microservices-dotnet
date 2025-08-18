@@ -17,10 +17,10 @@ public class YarpConfiguration : IProxyConfigProvider
 {
     // Provedor de configuração em memória do YARP
     private readonly InMemoryConfigProvider _inMemoryConfigProvider;
-    
+
     // Monitor das opções de descoberta de serviços
     private readonly IOptionsMonitor<ServiceDiscoveryOptions> _serviceDiscoveryOptionsMonitor;
-    
+
     // Monitor das configurações gerais da aplicação
     private readonly IOptionsMonitor<IConfiguration> _configurationMonitor;
 
@@ -35,10 +35,10 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         _serviceDiscoveryOptionsMonitor = serviceDiscoveryOptionsMonitor;
         _configurationMonitor = configurationMonitor;
-        
+
         // Inicializa o provedor de configuração em memória
         _inMemoryConfigProvider = new InMemoryConfigProvider(GetRoutes(), GetClusters());
-        
+
         // Registra callback para mudanças nas opções de descoberta de serviços
         _serviceDiscoveryOptionsMonitor.OnChange(OnConfigurationChanged);
     }
@@ -62,7 +62,7 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         // Atualiza o provedor em memória com novas rotas e clusters
         _inMemoryConfigProvider.Update(GetRoutes(), GetClusters());
-        
+
         // Nota: InMemoryConfigProvider não implementa IDisposable
         // então não é necessário chamar Dispose()
         // oldConfigProvider.Dispose(); // Removido - não é necessário
@@ -77,37 +77,27 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         var routes = new List<RouteConfig>();
         var configuration = _configurationMonitor.CurrentValue;
-        
+
         // Obtém seção de rotas do appsettings.json
         var routesSection = configuration.GetSection("ReverseProxy:Routes");
-        
+
         foreach (var routeSection in routesSection.GetChildren())
         {
             // Cria configuração de rota baseada no appsettings
             var route = new RouteConfig
             {
-                // ID único da rota
                 RouteId = routeSection.Key,
-                
-                // Cluster de destino (grupo de serviços)
-                ClusterId = routeSection["ClusterId"],
-                
-                // Padrão de correspondência da URL
+                ClusterId = routeSection["ClusterId"] ?? string.Empty, // CORRIGIDO
                 Match = new RouteMatch
                 {
-                    Path = routeSection["Match:Path"]
+                    Path = routeSection["Match:Path"] ?? "/"
                 },
-                
-                // Transformações aplicadas às requisições
                 Transforms = GetTransforms(routeSection.GetSection("Transforms")),
-                
-                // Metadados adicionais da rota
                 Metadata = GetMetadata(routeSection.GetSection("Metadata"))
             };
-            
             routes.Add(route);
         }
-        
+
         return routes;
     }
 
@@ -120,10 +110,10 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         var clusters = new List<ClusterConfig>();
         var configuration = _configurationMonitor.CurrentValue;
-        
+
         // Obtém seção de clusters do appsettings.json
         var clustersSection = configuration.GetSection("ReverseProxy:Clusters");
-        
+
         foreach (var clusterSection in clustersSection.GetChildren())
         {
             // Cria configuração de cluster
@@ -131,26 +121,26 @@ public class YarpConfiguration : IProxyConfigProvider
             {
                 // ID único do cluster
                 ClusterId = clusterSection.Key,
-                
+
                 // Política de balanceamento de carga
                 LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                
+
                 // Destinos (endpoints) do cluster
                 Destinations = GetDestinations(clusterSection.GetSection("Destinations")),
-                
+
                 // Configurações de health check
                 HealthCheck = GetHealthCheckConfig(clusterSection.GetSection("HealthCheck")),
-                
+
                 // Configurações de requisição HTTP
                 HttpRequest = GetForwarderRequestConfig(clusterSection.GetSection("HttpRequest")),
-                
+
                 // Metadados do cluster
                 Metadata = GetMetadata(clusterSection.GetSection("Metadata"))
             };
-            
+
             clusters.Add(cluster);
         }
-        
+
         return clusters;
     }
 
@@ -163,7 +153,7 @@ public class YarpConfiguration : IProxyConfigProvider
     private IReadOnlyDictionary<string, DestinationConfig> GetDestinations(IConfigurationSection destinationsSection)
     {
         var destinations = new Dictionary<string, DestinationConfig>();
-        
+
         foreach (var destinationSection in destinationsSection.GetChildren())
         {
             // Cria configuração de destino
@@ -171,17 +161,17 @@ public class YarpConfiguration : IProxyConfigProvider
             {
                 // URL base do serviço
                 Address = destinationSection["Address"],
-                
+
                 // Endpoint específico para health check
                 Health = destinationSection["Health"],
-                
+
                 // Metadados do destino (peso, tags, etc.)
                 Metadata = GetMetadata(destinationSection.GetSection("Metadata"))
             };
-            
+
             destinations[destinationSection.Key] = destination;
         }
-        
+
         return destinations;
     }
 
@@ -195,12 +185,12 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!healthCheckSection.Exists())
             return null;
-            
+
         return new HealthCheckConfig
         {
             // Health check ativo (o proxy verifica proativamente)
             Active = GetActiveHealthCheckConfig(healthCheckSection.GetSection("Active")),
-            
+
             // Health check passivo (baseado em falhas de requisições)
             Passive = GetPassiveHealthCheckConfig(healthCheckSection.GetSection("Passive"))
         };
@@ -216,21 +206,21 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!activeSection.Exists())
             return null;
-            
+
         return new ActiveHealthCheckConfig
         {
             // Se o health check ativo está habilitado
             Enabled = activeSection.GetValue<bool>("Enabled"),
-            
+
             // Intervalo entre verificações
             Interval = activeSection.GetValue<TimeSpan?>("Interval"),
-            
+
             // Timeout para cada verificação
             Timeout = activeSection.GetValue<TimeSpan?>("Timeout"),
-            
+
             // Política de health check (Any, All, etc.)
             Policy = activeSection["Policy"],
-            
+
             // Caminho do endpoint de health check
             Path = activeSection["Path"]
         };
@@ -246,15 +236,15 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!passiveSection.Exists())
             return null;
-            
+
         return new PassiveHealthCheckConfig
         {
             // Se o health check passivo está habilitado
             Enabled = passiveSection.GetValue<bool>("Enabled"),
-            
+
             // Política de health check passivo
             Policy = passiveSection["Policy"],
-            
+
             // Período de tempo para reativar destino não saudável
             ReactivationPeriod = passiveSection.GetValue<TimeSpan?>("ReactivationPeriod")
         };
@@ -270,15 +260,15 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!httpRequestSection.Exists())
             return null;
-            
+
         return new ForwarderRequestConfig
         {
             // Timeout para atividade da requisição (substitui o antigo Timeout)
             ActivityTimeout = httpRequestSection.GetValue<TimeSpan?>("ActivityTimeout"),
-            
+
             // Versão HTTP a ser usada
             Version = httpRequestSection.GetValue<Version>("Version"),
-            
+
             // Política de versão HTTP
             VersionPolicy = httpRequestSection.GetValue<HttpVersionPolicy?>("VersionPolicy")
         };
@@ -294,13 +284,13 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!transformsSection.Exists())
             return null;
-            
+
         var transforms = new List<IReadOnlyDictionary<string, string>>();
-        
+
         foreach (var transformSection in transformsSection.GetChildren())
         {
             var transform = new Dictionary<string, string>();
-            
+
             // Adiciona todas as propriedades da transformação
             foreach (var kvp in transformSection.AsEnumerable())
             {
@@ -309,10 +299,10 @@ public class YarpConfiguration : IProxyConfigProvider
                     transform[kvp.Key] = kvp.Value;
                 }
             }
-            
+
             transforms.Add(transform);
         }
-        
+
         return transforms;
     }
 
@@ -326,9 +316,9 @@ public class YarpConfiguration : IProxyConfigProvider
     {
         if (!metadataSection.Exists())
             return null;
-            
+
         var metadata = new Dictionary<string, string>();
-        
+
         // Adiciona todos os metadados da seção
         foreach (var kvp in metadataSection.AsEnumerable())
         {
@@ -337,7 +327,7 @@ public class YarpConfiguration : IProxyConfigProvider
                 metadata[kvp.Key] = kvp.Value;
             }
         }
-        
+
         return metadata;
     }
 }

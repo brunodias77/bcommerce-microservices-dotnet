@@ -26,7 +26,7 @@ public class JwtAuthenticationHandler : JwtBearerHandler
         UrlEncoder encoder,
         IOptions<KeycloakAuthenticationOptions> keycloakOptions,
         HttpClient httpClient,
-        TimeProvider timeProvider) 
+        TimeProvider timeProvider)
         : base(jwtOptions, loggerFactory, encoder)
     {
         _logger = loggerFactory.CreateLogger<JwtAuthenticationHandler>();
@@ -57,19 +57,18 @@ public class JwtAuthenticationHandler : JwtBearerHandler
                 return AuthenticateResult.Fail("No JWT token provided");
             }
 
-            // Valida o token JWT
             var validationResult = await ValidateTokenAsync(token);
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("JWT token validation failed: {Error}", validationResult.Error);
-                return AuthenticateResult.Fail(validationResult.Error);
+                return AuthenticateResult.Fail(validationResult.Error ?? "Token validation failed"); // CORRIGIDO
             }
 
             // Cria o principal com as claims do usuário
             var principal = CreateClaimsPrincipal(validationResult.Claims);
             var ticket = new AuthenticationTicket(principal, Scheme.Name);
 
-            _logger.LogDebug("JWT authentication successful for user: {UserId}", 
+            _logger.LogDebug("JWT authentication successful for user: {UserId}",
                 principal.FindFirst("sub")?.Value);
 
             return AuthenticateResult.Success(ticket);
@@ -97,7 +96,7 @@ public class JwtAuthenticationHandler : JwtBearerHandler
     private bool IsPublicEndpoint()
     {
         var path = Context.Request.Path.Value?.ToLowerInvariant();
-        
+
         var publicEndpoints = new[]
         {
             "/health",
@@ -120,7 +119,7 @@ public class JwtAuthenticationHandler : JwtBearerHandler
     private string? ExtractTokenFromHeader()
     {
         var authHeader = Context.Request.Headers["Authorization"].FirstOrDefault();
-        
+
         if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
             return null;
@@ -132,13 +131,13 @@ public class JwtAuthenticationHandler : JwtBearerHandler
     /// <summary>
     /// Valida o token JWT usando as configurações do Keycloak
     /// </summary>
+
     private async Task<TokenValidationResult> ValidateTokenAsync(string token)
     {
         try
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            
-            // Parâmetros de validação baseados na configuração do Keycloak
+
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -148,16 +147,14 @@ public class JwtAuthenticationHandler : JwtBearerHandler
                 ValidIssuer = _options.Authority,
                 ValidAudiences = _options.ValidAudiences,
                 ClockSkew = TimeSpan.FromSeconds(_options.ClockSkewSeconds),
-                // As chaves de assinatura serão obtidas automaticamente do Keycloak
                 IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
                 {
-                    // Implementação para obter chaves do Keycloak JWKS endpoint
                     return GetKeycloakSigningKeys();
                 }
             };
 
             var result = await tokenHandler.ValidateTokenAsync(token, validationParameters);
-            
+
             if (result.IsValid)
             {
                 var jwtToken = result.SecurityToken as JwtSecurityToken;
@@ -165,7 +162,7 @@ public class JwtAuthenticationHandler : JwtBearerHandler
                 {
                     IsValid = true,
                     Claims = result.ClaimsIdentity.Claims.ToList(),
-                    Token = jwtToken
+                    Token = jwtToken // CORRIGIDO - agora a propriedade existe
                 };
             }
             else
@@ -204,10 +201,10 @@ public class JwtAuthenticationHandler : JwtBearerHandler
     private ClaimsPrincipal CreateClaimsPrincipal(IEnumerable<Claim> claims)
     {
         var claimsIdentity = new ClaimsIdentity(claims, Scheme.Name);
-        
+
         // Adiciona claims personalizadas se necessário
         EnrichUserClaims(claimsIdentity);
-        
+
         return new ClaimsPrincipal(claimsIdentity);
     }
 
@@ -226,7 +223,7 @@ public class JwtAuthenticationHandler : JwtBearerHandler
 
         // Adiciona timestamp da autenticação
         identity.AddClaim(new Claim("auth_time", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()));
-        
+
         // Adiciona informações do request
         identity.AddClaim(new Claim("request_ip", Context.Connection.RemoteIpAddress?.ToString() ?? "unknown"));
     }
@@ -239,8 +236,8 @@ public class JwtAuthenticationHandler : JwtBearerHandler
         public bool IsValid { get; set; }
         public string? Error { get; set; }
         public IEnumerable<Claim> Claims { get; set; } = Enumerable.Empty<Claim>();
+        public JwtSecurityToken? Token { get; set; } // ADICIONADO - propriedade faltante
     }
-
     private bool IsTokenExpired(JwtSecurityToken token)
     {
         var now = _timeProvider.GetUtcNow(); // Usar TimeProvider
