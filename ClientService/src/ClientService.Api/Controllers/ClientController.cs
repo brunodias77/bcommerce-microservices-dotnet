@@ -3,6 +3,7 @@ using ClientService.Application.UseCases.Clients.Create;
 using ClientService.Application.UseCases.Clients.Login;
 using ClientService.Application.UseCases.Clients.GetProfile; // Adicionar esta linha
 using ClientService.Domain.Repositories;
+using ClientService.Domain.Services;
 using ClientService.Domain.ValueObjects;
 using Microsoft.AspNetCore.Authorization; // Adicionar esta linha
 using Microsoft.AspNetCore.Mvc;
@@ -19,21 +20,24 @@ public class ClientController : ControllerBase
     private readonly ILoginClientUseCase _loginClientUseCase;
     private readonly IGetClientProfileUseCase _getClientProfileUseCase; // Adicionar esta linha
     private readonly IKeycloakService _keycloakService;
+    private readonly ILoggedUser _loggedUser; // Adicionar esta linha
 
     public ClientController(
         IClientRepository clientRepository, 
         ILogger<ClientController> logger,
         ICreateClientUseCase createClientUseCase,
         ILoginClientUseCase loginClientUseCase,
-        IGetClientProfileUseCase getClientProfileUseCase, // Adicionar esta linha
-        IKeycloakService keycloakService)
+        IGetClientProfileUseCase getClientProfileUseCase,
+        IKeycloakService keycloakService,
+        ILoggedUser loggedUser) // Adicionar este parâmetro
     {
         _clientRepository = clientRepository;
         _logger = logger;
         _createClientUseCase = createClientUseCase;
         _loginClientUseCase = loginClientUseCase;
-        _getClientProfileUseCase = getClientProfileUseCase; // Adicionar esta linha
+        _getClientProfileUseCase = getClientProfileUseCase;
         _keycloakService = keycloakService;
+        _loggedUser = loggedUser; // Adicionar esta linha
     }
 
     /// <summary>
@@ -402,6 +406,53 @@ public class ClientController : ControllerBase
         {
             _logger.LogError(ex, "Erro interno ao obter perfil do cliente");
             return StatusCode(500, "Erro interno do servidor");
+        }
+    }
+    
+    /// <summary>
+    /// Método de teste para verificar se o usuário está autenticado e retornar informações básicas
+    /// </summary>
+    /// <returns>Informações básicas do usuário autenticado</returns>
+    [HttpGet("test-authenticated-user")]
+    [Authorize]
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<IActionResult> TestAuthenticatedUser()
+    {
+        try
+        {
+            _logger.LogInformation("Testando usuário autenticado");
+            
+            var loggedUser = await _loggedUser.User();
+            
+            if (loggedUser == null)
+            {
+                _logger.LogWarning("Usuário autenticado não encontrado no banco de dados");
+                return NotFound(new { message = "Usuário autenticado não encontrado no banco de dados" });
+            }
+            
+            var userInfo = new
+            {
+                Id = loggedUser.Id,
+                KeycloakUserId = loggedUser.KeycloakUserId,
+                FirstName = loggedUser.FirstName,
+                LastName = loggedUser.LastName,
+                Email = loggedUser.Email.Value,
+                Role = loggedUser.Role.ToString(),
+                Status = loggedUser.Status.ToString(),
+                CreatedAt = loggedUser.CreatedAt,
+                Message = "Usuário autenticado com sucesso!"
+            };
+            
+            _logger.LogInformation("Informações do usuário autenticado obtidas com sucesso. ID: {UserId}", loggedUser.Id);
+            return Ok(userInfo);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro interno ao testar usuário autenticado");
+            return StatusCode(500, new { message = "Erro interno do servidor" });
         }
     }
 }
