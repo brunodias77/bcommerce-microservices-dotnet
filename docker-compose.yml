@@ -115,16 +115,25 @@ services:
       dockerfile: Dockerfile
     container_name: b-commerce-api-gateway
     ports:
-      - "5000:80"
+      - "5001:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5000
       - Keycloak__Authority=http://keycloak:8080/realms/b-commerce-realm
-      - ReverseProxy__Clusters__client-service-cluster__Destinations__client-service__Address=http://client-service:80/
+      - Keycloak__Audience=b-commerce-backend
+      - Cors__AllowedOrigins__0=http://localhost:4200
+      - Cors__AllowedOrigins__1=http://localhost:3000
     depends_on:
       - keycloak
       - client-service
     networks:
       - b-commerce-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/api/gateway/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
 
   # Client Service

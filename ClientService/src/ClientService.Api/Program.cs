@@ -8,12 +8,14 @@ using Microsoft.OpenApi.Models;
 
 // Carregar variáveis do arquivo .env
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Add health checks
+builder.Services.AddHealthChecks();
 
 // Custom configurations
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -35,6 +37,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map health check endpoint
+app.MapHealthChecks("/health");
+
 app.MapControllers();
 
 app.Run();
